@@ -1,2 +1,4 @@
 [objects]
-obj/header.o
+obj/init.o
+obj/render.o
+obj/timing.o
