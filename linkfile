@@ -2,3 +2,4 @@
 obj/init.o
 obj/render.o
 obj/timing.o
+obj/logic.o

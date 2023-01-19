@@ -10,6 +10,11 @@ Start	CLEAN_START
 	lda #BG_LIGHT
 	sta wLightColor
 
+	lda #60
+	sta wP1y
+	lda #100
+	sta wP2y
+
 
     jmp NextFrame
 
