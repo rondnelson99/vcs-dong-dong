@@ -3,9 +3,8 @@
     wLightColor: db
     wDarkColor: db
 
-    wP1y: db
+
     wP1yCounter: db
-    wP2y: db
     wP2yCounter: db
 
 
@@ -81,91 +80,71 @@ RenderScreen
     sta WSYNC
     sta VBLANK ;disable blanking
 
-    ldx #STRIPE_WIDTH
-loop1
-    sta WSYNC
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
 
-    check_draw_players
-
-    dex
-    bne loop1
 
     ;now do a dark stripe
+    sta WSYNC
     lda wDarkColor
     sta COLUBK
-    ldx #STRIPE_WIDTH
-loop2
-    sta WSYNC
-    
-    check_draw_players
 
-    dex
-    bne loop2
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
+
 
     ;now do a light stripe
+    sta WSYNC
     lda wLightColor
     sta COLUBK
-    ldx #STRIPE_WIDTH
-loop3
-    sta WSYNC
-    
-    check_draw_players
 
-    dex
-    bne loop3
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
 
     ;now do a dark stripe
+    sta WSYNC
     lda wDarkColor
     sta COLUBK
-    ldx #STRIPE_WIDTH
-loop4
-    sta WSYNC
-    
-    check_draw_players
 
-    dex
-    bne loop4
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
 
     ;now do a light stripe
+    sta WSYNC
     lda wLightColor
     sta COLUBK
-    ldx #STRIPE_WIDTH
-loop5 
-    sta WSYNC
-    
-    check_draw_players
 
-    dex
-    bne loop5
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
 
     ;now do a dark stripe
+    sta WSYNC
     lda wDarkColor
     sta COLUBK
-    ldx #STRIPE_WIDTH
-loop6
-    sta WSYNC
-    
-    check_draw_players
-
-    dex
-    bne loop6
+    ldx #STRIPE_WIDTH-1
+    jsr RenderSticksLoop
 
     ;the last light stripe will be twice as long
+    sta WSYNC
     lda wLightColor
     sta COLUBK
-    ldx #STRIPE_WIDTH*2
-loop7
-    sta WSYNC
     
-    check_draw_players
-
-    dex
-    bne loop7
+    ldx #STRIPE_WIDTH*2
+    jsr RenderSticksLoop
         
     ;now return to the main loop
     rts
 .ENDS
 
-.SECTION "Render sticks loop", FREE
+.SECTION "Render sticks loop", FREE ;call this to render the sticks while delaying for x scanlines
+RenderSticksLoop:
+@loop
+    sta WSYNC
+    
+    check_draw_players
+
+    dex
+    bne @loop
+    rts
 
 .ENDS

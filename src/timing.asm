@@ -28,7 +28,7 @@ FinishFrame
 	;now process stuff
 	
     ;ENTER VBLANK ROUTINES HERE
-
+	jsr UpdatePlayers
 
 @waitTimer
 	sta WSYNC
