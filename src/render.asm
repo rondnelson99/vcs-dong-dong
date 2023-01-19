@@ -3,7 +3,10 @@
     wLightColor: db
     wDarkColor: db
 
-    wSegmentCount: db
+    wP1y: db
+    wP2y: db
+
+
 .ENDS
 
 
@@ -22,6 +25,26 @@ RenderScreen
     sta CTRLPF
     lda #$80
     sta PF2
+
+    ;configure the players
+    lda #$07
+    sta NUSIZ0
+    sta NUSIZ1
+    lda #$ff
+    sta GRP0
+    sta GRP1
+    lda #130
+    sta COLUP0
+    lda #66
+    sta COLUP1
+
+    ;position the player sticks
+    sta WSYNC
+    SLEEP 25
+    sta RESP0
+    SLEEP 20
+    sta RESP1
+    sta WSYNC
 
     lda wLightColor ; draw 16 lines of the light color
     sta COLUBK
