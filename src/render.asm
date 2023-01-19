@@ -11,9 +11,11 @@
 
 .ENDS
 
+.equ PLAYER_HEIGHT 4 ;the height of the player sticks
+
 .macro check_draw_players
     ; check if we should draw the players. Call on every scanline where the players are visible.
-    lda #-4
+    lda #-PLAYER_HEIGHT-1 ; the -1 avoids an off-by-one error since the the difference should be negative, not zero
     dcp wP1yCounter ;decrement the counter and check if it's between 0 and -4 (make it 4 px tall)
     bcs @skip1\@ ;all these \@ are to make sure the labels are unique. The assembles redefines this symbol on each macro call.
     ldy #$ff
@@ -80,6 +82,8 @@ RenderScreen
     sta WSYNC
     sta VBLANK ;disable blanking
 
+    check_draw_players
+
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
@@ -142,7 +146,7 @@ RenderScreen
 
     check_draw_players
 
-    ldx #STRIPE_WIDTH*2
+    ldx #STRIPE_WIDTH*2-1
     jsr RenderSticksLoop
         
     ;now return to the main loop
