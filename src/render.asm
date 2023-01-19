@@ -15,23 +15,23 @@
     ; check if we should draw the players. Call on every scanline where the players are visible.
     lda #-4
     dcp wP1yCounter ;decrement the counter and check if it's between 0 and -4 (make it 4 px tall)
-    bcs @skip1
+    bcs @skip1\@ ;all these \@ are to make sure the labels are unique. The assembles redefines this symbol on each macro call.
     ldy #$ff
     sty GRP0
-    jmp @check2
-@skip1
+    jmp @check2\@
+@skip1\@
     ldy #$00
     sty GRP0
-@check2
+@check2\@
     dcp wP2yCounter ;decrement the counter and check if it's between 0 and -4 (make it 4 px tall)
-    bcs @skip2
+    bcs @skip2\@
     ldy #$ff
     sty GRP1
-    jmp @done
-@skip2
+    jmp @done\@
+@skip2\@
     ldy #$00
     sty GRP1
-@done
+@done\@
 .endm
 
 .SECTION "render", FREE
@@ -89,6 +89,8 @@ RenderScreen
     lda wDarkColor
     sta COLUBK
 
+    check_draw_players
+
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
@@ -98,6 +100,8 @@ RenderScreen
     lda wLightColor
     sta COLUBK
 
+    check_draw_players
+
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
@@ -105,6 +109,8 @@ RenderScreen
     sta WSYNC
     lda wDarkColor
     sta COLUBK
+
+    check_draw_players
 
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
@@ -114,6 +120,8 @@ RenderScreen
     lda wLightColor
     sta COLUBK
 
+    check_draw_players
+
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
@@ -121,6 +129,9 @@ RenderScreen
     sta WSYNC
     lda wDarkColor
     sta COLUBK
+
+    check_draw_players
+
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
@@ -128,11 +139,14 @@ RenderScreen
     sta WSYNC
     lda wLightColor
     sta COLUBK
-    
+
+    check_draw_players
+
     ldx #STRIPE_WIDTH*2
     jsr RenderSticksLoop
         
     ;now return to the main loop
+    sta WSYNC
     rts
 .ENDS
 
