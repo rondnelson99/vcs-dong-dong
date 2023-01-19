@@ -77,9 +77,8 @@ rebuild:
 # How to build a ROM
 $(BINDIR)/%.$(ROMEXT) $(BINDIR)/%.sym: $(patsubst src/%.asm,$(OBJDIR)/%.o,$(SRCS))
 	@$(MKDIR_P) $(@D)
-	$(WLALINK) $(LDFLAGS)  -S  -s  -r linkfile $(BINDIR)/$*.$(ROMEXT) 
-	cp $(BINDIR)/$*.$(ROMEXT) /mnt/c/Users/rondn/Documents/
-
+	$(WLALINK) $(LDFLAGS)  -s    -r linkfile $(BINDIR)/$*.$(ROMEXT) 
+	src/tools/debugmap.py $(BINDIR)/$*.sym 
 # `.mk` files are auto-generated dependency lists of the "root" ASM files, to save a lot of hassle.
 # Also add all obj dependencies to the dep file too, so Make knows to remake it
 
