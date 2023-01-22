@@ -7,11 +7,22 @@
     wP1yCounter: db
     wP2yCounter: db
 
+    wStripeCounter: db ;counts how many sets of stripes we've drawn
+
+    wP0X: db ; these are the logical positions that the HMOVE routime will move the objects toward
+    wP1X: db
+    wBallX: db
+
+    wCurP0XOffset: db ; these are the actual current TIA X positions, not the logical game positions
+    wCurP1XOffset: db
+    wCurBallXOffset: db
 
 
 .ENDS
 
 .equ PLAYER_HEIGHT 4 ;the height of the player sticks
+.equ P1_COLOR 130
+.equ P2_COLOR 66
 
 .macro check_draw_players
     ; check if we should draw the players. Call on every scanline where the players are visible.
@@ -42,14 +53,14 @@
 .equ WALL_COLOR $0A
 RenderScreen
 
-    ;set COLUPF to grey for the walls
+    ;First, we have a whole bunch of constants to write to registers
+
+    ;set up the playfield for the brick walls
     lda #WALL_COLOR
     sta COLUPF
-    ;and set up the PF
     lda #$01
     sta CTRLPF
-    lda #$80
-    sta PF2
+
 
     ;configure the players
     lda #$07
@@ -58,51 +69,47 @@ RenderScreen
     lda #$00
     sta GRP0
     sta GRP1
-    lda #130
+    lda #P1_COLOR
     sta COLUP0
-    lda #66
+    lda #P2_COLOR
     sta COLUP1
 
-    lda wP1y
+    lda wP1y ; set the temporary counters to the current player positions, which will be destroyed during the rendering
     sta wP1yCounter
     lda wP2y
     sta wP2yCounter
 
     ;position the player sticks
     sta WSYNC
-    SLEEP 25
+    SLEEP 22
     sta RESP0
-    SLEEP 20
+    SLEEP 29
     sta RESP1
     sta WSYNC
 
-    lda wLightColor ; draw 16 lines of the light color
-    sta COLUBK
+    ;write their imprecise initial positions to the variables that the HMOVE routine will use
+    lda #12-13
+    sta wCurP0XOffset
+    lda #116-109
+    sta wCurP1XOffset
+
+
+    lda #4
+    sta wStripeCounter
+
+    ;now use the HMOVE routine to move the players to their initial positions
+    jsr ComputeHMoves
+
     lda #0
     sta WSYNC
     sta VBLANK ;disable blanking
 
-    check_draw_players
-
-    ldx #STRIPE_WIDTH-1
-    jsr RenderSticksLoop
-
-
-    ;now do a dark stripe
-    sta WSYNC
-    lda wDarkColor
-    sta COLUBK
-
-    check_draw_players
-
-    ldx #STRIPE_WIDTH-1
-    jsr RenderSticksLoop
-
-
+LightDarkStripeLoop: ;draws a light stripe, then a dark stripe
     ;now do a light stripe
-    sta WSYNC
     lda wLightColor
     sta COLUBK
+    lda #$80 ;set the bricks
+    sta PF2
 
     check_draw_players
 
@@ -113,44 +120,20 @@ RenderScreen
     sta WSYNC
     lda wDarkColor
     sta COLUBK
+    lda #0 ;clear the bricks
+    sta PF2
 
     check_draw_players
 
     ldx #STRIPE_WIDTH-1
     jsr RenderSticksLoop
 
-    ;now do a light stripe
     sta WSYNC
-    lda wLightColor
-    sta COLUBK
 
-    check_draw_players
+    dec wStripeCounter
+    bne LightDarkStripeLoop
 
-    ldx #STRIPE_WIDTH-1
-    jsr RenderSticksLoop
-
-    ;now do a dark stripe
-    sta WSYNC
-    lda wDarkColor
-    sta COLUBK
-
-    check_draw_players
-
-    ldx #STRIPE_WIDTH-1
-    jsr RenderSticksLoop
-
-    ;the last light stripe will be twice as long
-    sta WSYNC
-    lda wLightColor
-    sta COLUBK
-
-    check_draw_players
-
-    ldx #STRIPE_WIDTH*2-1
-    jsr RenderSticksLoop
-        
     ;now return to the main loop
-    sta WSYNC
     rts
 .ENDS
 
@@ -166,3 +149,87 @@ RenderSticksLoop:
     rts
 
 .ENDS
+
+.SECTION "Compute HMOVEs", FREE ;computes and writes HMOVE offsets for each player and the ball
+ComputeHMoves: ;careful; it uses a scanline and a half to compute the HMOVEs - not for the middle of the frame
+    sta WSYNC
+
+    ;start with player 0
+
+    ; subtract desired x - current x
+    ldx wCurP0XOffset
+    lda.w HMoveTable,x ; get the HMOVE value from the table
+    sta HMP0 ; write it to the HMOVE register
+
+    and #$0F ; mask off the top 4 bits
+    sec
+    sbc #7 ; subtract 7 to make it a signed number. This technique saves 2 cycles compared to sign-extending the value and storing it as negative.
+    
+    clc
+    adc wCurP0XOffset ; add the current x position
+    sta wCurP0XOffset ; save the new x position
+
+    ;now do player 1
+
+    ; subtract desired x - current x
+    ldx wCurP1XOffset
+    lda.w HMoveTable,x ; get the HMOVE value from the table
+    sta HMP1 ; write it to the HMOVE register
+
+    and #$0F ; mask off the top 4 bits
+    sec
+    sbc #7 
+
+    clc
+    adc wCurP1XOffset ; add the current x position
+    sta wCurP1XOffset ; save the new x position
+
+    ;now do the ball
+
+    ; subtract desired x - current x
+    ldx wCurBallXOffset
+    lda.w HMoveTable,x ; get the HMOVE value from the table
+    sta HMBL ; write it to the HMOVE register
+
+    and #$0F ; mask off the top 4 bits
+    sec
+    sbc #7
+
+    clc
+    adc wCurBallXOffset ; add the current x position
+    sta wCurBallXOffset ; save the new x position
+
+    sta WSYNC ; this barely fits in a scanline
+    sta HMOVE
+    rts
+.ENDS
+
+.MACRO hmove_table_byte ARGS diff ;writes a byte to the HMOVE table. Argument is the difference between the desired and current x positions.
+    .IF diff < 0
+        .REDEF delta max(diff, -7)
+    .ELSE
+        .REDEF delta min(diff, 8)
+    .ENDIF
+    .db (( 0 - delta) << 4) | (delta + 7)
+.ENDM
+
+.SECTION "HMOVE Table", ALIGN 256 FREE ;signed 8bit table. 
+; assists with moving an entity toward the desired x position. the top 4 bits are ready to be written to HMOVE, 
+; and the bottom 4 should have 7 subtracted from it (so they can be stored as positive) and added to the current x position.
+; the table is indexed by the difference between the desired and current x positions.
+HMoveTable:
+    .REPT 128 INDEX I ;do the positive numbers
+        hmove_table_byte I
+    .ENDR
+    .REPT 128 INDEX I ;do the negative numbers
+        hmove_table_byte -128+I
+    .ENDR
+.ENDS
+
+
+
+
+
+
+
+ 

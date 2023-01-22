@@ -12,8 +12,13 @@ Start	CLEAN_START
 
 	lda #60
 	sta wP1y
+	lda #12
+	sta wP0X
+
 	lda #100
 	sta wP2y
+	lda #116
+	sta wP1X
 
 
     jmp NextFrame
