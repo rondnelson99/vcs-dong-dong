@@ -24,6 +24,8 @@
 .equ P1_COLOR 130
 .equ P2_COLOR 66
 
+.equ BRICK_COLOR 28
+
 .macro check_draw_players
     ; check if we should draw the players. Call on every scanline where the players are visible.
     lda #-PLAYER_HEIGHT-1 ; the -1 avoids an off-by-one error since the the difference should be negative, not zero
@@ -55,10 +57,10 @@ RenderScreen
 
     ;First, we have a whole bunch of constants to write to registers
 
-    ;set up the playfield for the brick walls
+    ;set up the playfield for the grey walls and 8px wide bricks
     lda #WALL_COLOR
     sta COLUPF
-    lda #$01
+    lda #$31 ; mirror the playfield, 8px wide ball
     sta CTRLPF
 
 
@@ -79,11 +81,13 @@ RenderScreen
     lda wP2y
     sta wP2yCounter
 
-    ;position the player sticks
+    ;position the player sticks and the ball
     sta WSYNC
     SLEEP 22
     sta RESP0
-    SLEEP 29
+    SLEEP 17
+    sta RESBL
+    SLEEP 9
     sta RESP1
     sta WSYNC
 
@@ -92,6 +96,9 @@ RenderScreen
     sta wCurP0XOffset
     lda #116-109
     sta wCurP1XOffset
+    lda #(76-3)-71
+    sta wCurBallXOffset
+
 
 
     lda #4
@@ -108,8 +115,12 @@ LightDarkStripeLoop: ;draws a light stripe, then a dark stripe
     ;now do a light stripe
     lda wLightColor
     sta COLUBK
-    lda #$80 ;set the bricks
+    lda #$80 ;set the wall, clear the brick
     sta PF2
+    sta ENABL ;disable the ball
+    lda #WALL_COLOR ;set the PF color to the wall color
+    sta COLUPF
+
 
     check_draw_players
 
@@ -122,6 +133,13 @@ LightDarkStripeLoop: ;draws a light stripe, then a dark stripe
     sta COLUBK
     lda #0 ;clear the bricks
     sta PF2
+    ;and prepare to draw the brick (ball)
+    lda #BRICK_COLOR
+    sta COLUPF
+    lda #$02
+    sta ENABL
+
+
 
     check_draw_players
 
