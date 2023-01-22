@@ -20,6 +20,13 @@ Start	CLEAN_START
 	lda #116
 	sta wP1X
 
+	lda #76+3
+	sta wBricksX
+	lda #76-6
+	sta wBricksX+1
+	lda #76
+	sta wBricksX+2
+
 
     jmp NextFrame
 
